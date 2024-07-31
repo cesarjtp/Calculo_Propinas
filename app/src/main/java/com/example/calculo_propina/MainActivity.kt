@@ -1,46 +1,86 @@
 package com.example.calculo_propina
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.calculo_propina.ui.theme.Calculo_PropinaTheme
+import android.text.InputType
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var employeeAdapter: EmployeeAdapter
+    private val employees = mutableListOf<Employee>()
+    private var totalTip: Double = 0.0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            Calculo_PropinaTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Greeting("Android")
-                }
+        setContentView(R.layout.actvity_main)
+
+        recyclerView = findViewById(R.id.recyclerView)
+        employeeAdapter = EmployeeAdapter(employees)
+        recyclerView.adapter = employeeAdapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        findViewById<Button>(R.id.addEmployeeButton).setOnClickListener {
+            showAddEmployeeDialog()
+        }
+
+        findViewById<Button>(R.id.addTipButton).setOnClickListener {
+            showAddTipDialog()
+        }
+
+        updateTipDistribution()
+    }
+
+    private fun showAddEmployeeDialog() {
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Agregar Empleado")
+
+        val input = EditText(this)
+        input.hint = "Nombre del Empleado"
+        builder.setView(input)
+
+        builder.setPositiveButton("Agregar") { _, _ ->
+            val name = input.text.toString()
+            if (name.isNotEmpty()) {
+                employees.add(Employee(name))
+                employeeAdapter.notifyItemInserted(employees.size - 1)
+                updateTipDistribution()
             }
         }
+        builder.setNegativeButton("Cancelar", null)
+
+        builder.show()
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun showAddTipDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Agregar Propina")
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Calculo_PropinaTheme {
-        Greeting("Android")
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        input.hint = "Monto de la Propina"
+        builder.setView(input)
+
+        builder.setPositiveButton("Agregar") { _, _ ->
+            val tip = input.text.toString().toDoubleOrNull()
+            if (tip != null) {
+                totalTip += tip
+                updateTipDistribution()
+            }
+        }
+        builder.setNegativeButton("Cancelar", null)
+
+        builder.show()
+    }
+
+    private fun updateTipDistribution() {
+        employeeAdapter.updateTips(totalTip)
+        findViewById<TextView>(R.id.tipDistributionTextView).text = "Distribución de Propinas: $totalTip"
     }
 }
